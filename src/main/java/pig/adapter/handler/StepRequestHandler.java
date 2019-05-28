@@ -41,7 +41,7 @@ public class StepRequestHandler implements IDebugRequestHandler {
                     "Empty debug session.");
         }
 
-        session.resume();
+        session.next();
         return CompletableFuture.completedFuture(response);
     }
 

@@ -26,4 +26,6 @@ public interface IDebugSession extends IDebugSessionObservable {
     IFileContext getFileContext();
 
     int getCurrentLine();
+
+    void next();
 }

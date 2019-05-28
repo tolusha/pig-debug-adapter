@@ -11,12 +11,12 @@
 
 package pig.adapter;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.microsoft.java.debug.core.protocol.Events;
@@ -36,6 +36,7 @@ public class DebugSession implements IDebugSession {
     private boolean stopOnEntry;
     private List<Integer> breakpoints = new CopyOnWriteArrayList<>();
     private AtomicInteger currentLine = new AtomicInteger(1);
+    private AtomicBoolean stepAction = new AtomicBoolean();
     private DataProcessing dataProcessing;
     private IFileContext fileContext;
 
@@ -129,6 +130,12 @@ public class DebugSession implements IDebugSession {
                 if (AdapterUtils.isQuery(query)) {
                     try {
                         server.registerQuery(query);
+                        if (stepAction.get()) {
+                            stepAction.set(false);
+                            currentLine.incrementAndGet();
+                            DebugSession.this.notify(new Events.StoppedEvent("pause", 1, true));
+                            continue;
+                        }
                     } catch (IOException e) {
                         DebugSession.this.notify(new Events.OutputEvent(Category.stderr, e.getMessage()));
                     }
@@ -165,5 +172,11 @@ public class DebugSession implements IDebugSession {
     @Override
     public int getCurrentLine() {
         return this.currentLine.get();
+    }
+
+    @Override
+    public void next() {
+        this.stepAction.set(true);
+        this.dataProcessing.releaseLock();
     }
 }
